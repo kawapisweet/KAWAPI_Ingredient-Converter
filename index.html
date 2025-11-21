@@ -61,6 +61,17 @@
         .ig-gradient-border {
             background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
         }
+
+        /* 打勾動畫 */
+        .check-icon {
+            transition: all 0.2s ease-in-out;
+            transform: scale(0);
+            opacity: 0;
+        }
+        .active .check-icon {
+            transform: scale(1);
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="min-h-screen py-6 px-3 md:px-8 flex flex-col">
@@ -86,8 +97,9 @@
                     <h2 class="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 sticky top-0 bg-stone-50 py-1 z-10">
                       <i class="fa-solid fa-bars mr-1"></i>食譜選單
                     </h2>
-                    <!-- 手機版單欄，桌機版雙欄，更節省空間 -->
-                    <div id="recipe-menu-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
+
+                    <!-- 修改處：移除 grid-cols-2，改為垂直排列 (flex-col)，避免誤會是兩層式選單 -->
+                    <div id="recipe-menu-container" class="flex flex-col gap-2">
                         <!-- Menu injected by JS -->
                     </div>
                 </div>
@@ -131,12 +143,21 @@
                         <span class="w-6 h-6 rounded-full bg-stone-300 flex items-center justify-center mr-2 text-stone-600 text-xs shadow-sm">1</span>
                         選擇使用的模具形狀
                     </h2>
+
+                    <!-- 修改處：增加打勾圖示結構 (check-icon) -->
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="setTargetShape('circle')" id="btn-target-circle" class="p-3 rounded-xl border-2 border-stone-400 bg-white/80 text-stone-700 font-bold transition-all flex flex-col items-center gap-1 shadow-sm">
+                        <button onclick="setTargetShape('circle')" id="btn-target-circle" class="relative p-3 rounded-xl border-2 border-stone-400 bg-white/80 text-stone-700 font-bold transition-all flex flex-col items-center gap-1 shadow-sm active">
+                            <div class="check-icon absolute top-2 right-2 text-stone-600 text-lg">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
                             <i class="fa-regular fa-circle text-xl"></i>
                             <span class="text-sm">圓形</span>
                         </button>
-                        <button onclick="setTargetShape('square')" id="btn-target-square" class="p-3 rounded-xl border-2 border-transparent bg-white/50 text-stone-500 hover:bg-white/80 transition-all flex flex-col items-center gap-1">
+
+                        <button onclick="setTargetShape('square')" id="btn-target-square" class="relative p-3 rounded-xl border-2 border-transparent bg-white/50 text-stone-500 hover:bg-white/80 transition-all flex flex-col items-center gap-1">
+                            <div class="check-icon absolute top-2 right-2 text-stone-600 text-lg">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
                             <i class="fa-regular fa-square text-xl"></i>
                             <span class="text-sm">方形</span>
                         </button>
@@ -185,7 +206,6 @@
                 <div class="flex items-center gap-4 relative">
                     <!-- IG Avatar with Gradient Border -->
                     <div class="relative w-16 h-16 md:w-20 md:h-20 rounded-full p-[3px] ig-gradient-border shadow-md group-hover:scale-105 transition-transform duration-300">
-                        <!-- 請將下方的 src 換成您真實的頭像網址 -->
                         <img src="https://ugc.production.linktr.ee/4c6bc3fd-5376-4b00-aaa9-ccaa2995ff1b_467507587-956318039870144-6872184301590510822-n.jpeg?io=true&size=avatar-v3_0"
                              alt="kawapi_chu"
                              class="w-full h-full rounded-full object-cover border-2 border-white bg-white">
@@ -225,7 +245,7 @@
                 <!-- Linktree -->
                 <a href="https://linktr.ee/kawapi" target="_blank" class="social-btn flex flex-col md:flex-row items-center justify-center gap-2 px-3 py-3 bg-white border border-stone-200 rounded-2xl text-stone-600 hover:text-green-600 hover:border-green-300 shadow-sm transition-all col-span-2 md:col-span-1">
                     <i class="fa-solid fa-link text-xl"></i>
-                    <span class="font-medium text-xs md:text-sm">烘焙小物｜開團優惠</span>
+                    <span class="font-medium text-xs md:text-sm">烘焙小物優惠特價</span>
                 </a>
             </div>
 
@@ -408,12 +428,26 @@
         }
 
         function toggleFolder(folderIdx) {
+            // 新增邏輯：先關閉所有「非當前點擊」的資料夾
+            recipeData.forEach((_, idx) => {
+                if (idx !== folderIdx) {
+                    const otherContent = document.getElementById(`folder-content-${idx}`);
+                    const otherHeader = otherContent.previousElementSibling;
+                    const otherIcon = otherHeader.querySelector('.fa-chevron-down');
+
+                    if (otherContent.classList.contains('open')) {
+                        otherContent.classList.remove('open');
+                        otherHeader.classList.remove('active');
+                        otherIcon.classList.remove('rotate-180');
+                    }
+                }
+            });
+
+            // 原有邏輯：切換當前點擊的資料夾狀態
             const content = document.getElementById(`folder-content-${folderIdx}`);
             const header = content.previousElementSibling;
             const icon = header.querySelector('.fa-chevron-down');
 
-            // Close others if needed, but for now we allow multiple open
-            // Toggle current
             if (content.classList.contains('open')) {
                 content.classList.remove('open');
                 header.classList.remove('active');
@@ -473,17 +507,24 @@
             });
         }
 
+        // 修改：增加切換 class 'active' 以控制打勾圖示與樣式
         function setTargetShape(shape) {
             targetShape = shape;
             const btnCircle = document.getElementById('btn-target-circle');
             const btnSquare = document.getElementById('btn-target-square');
 
             if (shape === 'circle') {
-                btnCircle.className = "p-3 rounded-xl border-2 border-stone-400 bg-white/90 text-stone-700 font-bold transition-all flex flex-col items-center gap-1 shadow-sm ring-1 ring-stone-200";
-                btnSquare.className = "p-3 rounded-xl border-2 border-transparent bg-white/50 text-stone-400 hover:bg-white/80 transition-all flex flex-col items-center gap-1";
+                btnCircle.classList.add('active', 'bg-white/80', 'border-stone-400', 'font-bold', 'shadow-sm', 'text-stone-700');
+                btnCircle.classList.remove('border-transparent', 'bg-white/50', 'text-stone-500');
+
+                btnSquare.classList.remove('active', 'bg-white/80', 'border-stone-400', 'font-bold', 'shadow-sm', 'text-stone-700');
+                btnSquare.classList.add('border-transparent', 'bg-white/50', 'text-stone-500');
             } else {
-                btnSquare.className = "p-3 rounded-xl border-2 border-stone-400 bg-white/90 text-stone-700 font-bold transition-all flex flex-col items-center gap-1 shadow-sm ring-1 ring-stone-200";
-                btnCircle.className = "p-3 rounded-xl border-2 border-transparent bg-white/50 text-stone-400 hover:bg-white/80 transition-all flex flex-col items-center gap-1";
+                btnSquare.classList.add('active', 'bg-white/80', 'border-stone-400', 'font-bold', 'shadow-sm', 'text-stone-700');
+                btnSquare.classList.remove('border-transparent', 'bg-white/50', 'text-stone-500');
+
+                btnCircle.classList.remove('active', 'bg-white/80', 'border-stone-400', 'font-bold', 'shadow-sm', 'text-stone-700');
+                btnCircle.classList.add('border-transparent', 'bg-white/50', 'text-stone-500');
             }
             renderInputs();
             calculate();
